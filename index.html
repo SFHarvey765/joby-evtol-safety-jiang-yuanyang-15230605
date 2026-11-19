@@ -1,0 +1,40 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>作业二｜Joby 倾转推进 eVTOL 系统安全分析｜蒋远洋 15230605</title><style>*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:64px}body{margin:0;color:#213a36;background:#faf9f4;font:16px/1.85 Inter,"Microsoft YaHei",sans-serif}header,main,footer,nav div{max-width:1080px;margin:auto;padding:24px}header{padding-top:68px;padding-bottom:45px}h1{font-size:clamp(32px,5vw,59px);line-height:1.16;margin:15px 0 20px;font-family:Georgia,"Songti SC",serif}h2{font-size:28px;line-height:1.45;margin:0 0 18px}h3{font-size:18px}a{color:#276351;text-underline-offset:4px}nav{position:sticky;top:0;background:#183a35;color:white;z-index:2}nav div{display:flex;gap:24px;overflow:auto;white-space:nowrap;padding-block:12px}nav a{color:white;text-decoration:none;font-size:14px}section{padding:35px 0;border-bottom:1px solid #c9d3c9}small,figcaption{color:#596958}table{border-collapse:collapse;width:100%;font-size:14px;min-width:650px}td,th{padding:12px;vertical-align:top;border-bottom:1px solid #cdd7cf;text-align:left}th{background:#e4ebe2}td:first-child{font-weight:600}.scroll{overflow:auto}.call{padding:16px 22px;background:#e8eee3;border-left:3px solid #56846c}details{border-block-end:1px solid #d6ded5;padding:14px 0}summary{cursor:pointer;font-weight:bold}footer{font-size:13px}button{padding:8px 15px;color:inherit;background:white;border:1px solid #aab9ad;cursor:pointer}li{margin:7px 0}@media print{nav,button{display:none}header,main{padding:0}table{min-width:0;font-size:10px}section{padding:12px 0}body{font-size:12px}}</style><body><header><small>飞行汽车技术基础　/　课程作业二　/　蒋远洋 15230605</small><h1>Joby 倾转推进 eVTOL<br>系统安全分析</h1><p>机场进近末段，一组推进单元的实际倾角偏离指令。驾驶员还剩多少时间辨认异常？其余单元能否同时维持升力和姿态？本报告沿用第一次作业的机场接驳任务，从这一失效场景追踪到整机安全要求与验证证据。</p></header>
+<nav><div><a href="#scope">任务边界</a><a href="#hazards">整机危险</a><a href="#analysis">失效传播</a><a href="#constraints">控制与共因</a><a href="#verification">验证矩阵</a><a href="#case">安全论证</a></div></nav><main>
+<section id="scope"><h2>任务边界</h2>
+<p>分析对象为单驾驶员、四乘客的 Joby 六倾转推进布局。FAA 的 JAS4-1 准则提供型号与安全目标背景 [2]。本报告采用课堂 V 模型，将整机功能、系统危险、控制措施与验证逐层对应 [1]。下文 R1–R6 是课程提出的设计要求，V1–V6 是待执行的验证。</p>
+<div class="scroll"><table><thead><tr><th>功能或接口</th><th>运行设计条件（ODC）与边界</th><th>发生变化时的处置要求</th></tr></thead><tbody><tr><td>机场接驳</td><td>基准为昼间目视、已勘查起降场、有驾驶员。航段含起飞、过渡、巡航、进近和着陆。</td><td>风、能见度、备降点、场站占用或电池状态超出经批准范围时重新做放行判定。</td></tr><tr><td>飞控与推进</td><td>驾驶员提出航迹意图，飞控分配推力、倾角与舵面。传感器反馈实际响应。</td><td>分别监视指令、机构位置与整机响应，记录时间戳和数据有效性。</td></tr><tr><td>地面与人员</td><td>调度、维护、场站人员和地面第三方均在分析范围内。</td><td>把维修后的配置检查、进近区清场、充电与消防交接纳入放行程序。</td></tr></tbody></table></div>
+</section>
+<section id="hazards"><h2>整机危险</h2>
+<p>按 FHA 从功能失效推导最严重可信后果。下表严重度是初筛判断。灾难性指可能导致多人死亡，危险指安全裕量大幅降低并可能造成重伤。实际发生率、暴露时间和覆盖率需试验及运营数据支持，目前仅给验证优先级。</p>
+<div class="scroll"><table><thead><tr><th>危险与阶段</th><th>起因或功能偏差</th><th>整机／第三方后果</th><th>追踪</th></tr></thead><tbody><tr><td>H1 · 低空过渡</td><td>单侧倾转滞后，推力方向不对称</td><td>剩余力矩不足时失控撞地；灾难性</td><td>R1 / V1</td></tr><tr><td>H2 · 末端复飞</td><td>电池有剩余能量，但低温或低荷电状态下功率受限</td><td>复飞推力不足，重着陆或碰撞；灾难性</td><td>R2 / V2</td></tr><tr><td>H3 · 悬停或巡航</td><td>旋翼结构损伤向相邻推进站传播</td><td>瞬间丧失多站能力，继发失控；灾难性</td><td>R3 / V3</td></tr><tr><td>H4 · 进近交接</td><td>数据陈旧，自动模式切换后驾驶员仍按旧模式操纵</td><td>反向修正或延误复飞，侵入障碍净空；危险，可升级</td><td>R4 / V4</td></tr><tr><td>H5 · 着陆及周转</td><td>电池热异常隔离迟滞，烟热威胁乘员或救援人员</td><td>烟气、火灾、疏散受阻；危险，可升级</td><td>R5 / V5</td></tr><tr><td>H6 · 起降场</td><td>场面人员进入下洗或着陆区域，场站与驾驶员状态不同步</td><td>地面人员重伤，或临近接地紧急中止；危险</td><td>R6 / V6</td></tr></tbody></table></div>
+</section>
+<section id="analysis"><h2>失效传播</h2>
+<h3>从局部失效追到整机后果</h3>
+<div class="scroll"><table><thead><tr><th>FMEA 对象</th><th>失效模式与可观测量</th><th>控制措施与剩余风险</th></tr></thead><tbody><tr><td>倾转作动链</td><td>连杆卡滞；指令持续变化而实测角度停滞，机体出现非指令角速率。</td><td>比较多源位置与动力学响应，再触发受限控制分配。若传感器与机构共同损坏，仅靠位置表决可能漏检。</td></tr><tr><td>电源分配</td><td>负载跃升时母线电压跌落；母线级电压与推进站实际转矩同时异常。</td><td>按剩余通道的瞬时功率约束重算可达推力与力矩。隔离动作本身也会缩小可用包线。</td></tr><tr><td>飞行软件与接口</td><td>反馈延迟但数值仍合理；时间戳与估计状态不一致。</td><td>为陈旧数据设失效语义并规定模式退出条件。若各通道复用错误时间源，数值一致仍可能共同出错。</td></tr></tbody></table></div>
+<h3>故障树：进近末段失去可控着陆能力</h3>
+<p>本例顶事件由三条路径按“或”连接。A 为非对称推力出现，且在剩余高度内未恢复控制；B 为复飞需求出现，且当时可用功率低于安全复飞需求，且无可达着陆方案；C 为局部结构损伤传播至相邻站，且剩余推力／力矩组合无法配平。A 的“未恢复”又可由探测迟滞、隔离误判或执行余量不足任一因素触发。</p>
+<p>以路径 A 为例，“作动卡滞＋监测迟滞”是需要进一步分解的组合。两项事件如果共享供电或状态估计，不能按独立概率相乘。定量故障树还需要基本事件率、条件暴露和故障覆盖率。</p>
+<h3>试验事故对独立性假设的检验</h3>
+<p>NTSB 的 DCA22FA082 报告记载，2022 年一架遥控 JAS4-2 预生产原型机在扩展包线试验中发生桨叶失效，脱落桨叶击中相邻推进站，随后出现级联损伤 [3]。该试验超出预期运行条件，记录对象与 JAS4-1 文件具有不同型号标识。此证据足以把跨站机械传播列入 CCA 和区域安全分析；发生率及后续构型改进效果仍须单独验证。</p>
+</section>
+<section id="constraints"><h2>控制与共因</h2>
+<h3>STPA：指令合法也可能给错时机</h3>
+<p>控制回路为驾驶员／飞控 → 倾转执行机构与推进站 → 机体姿态和航迹 → 状态估计与模式显示。进近中如果采样延迟，控制器可能仍认为机翼可承担更多升力，提前下达倾转指令。所有部件均能执行命令，航迹却可能越过安全边界。</p>
+<div class="scroll"><table><thead><tr><th>不安全控制动作</th><th>安全约束</th><th>共因或人因检查</th></tr></thead><tbody><tr><td>过早切换承载模式</td><td>转换前确认空速、姿态、实际倾角和数据新鲜度均在已验证走廊内。</td><td>检查共享空速源偏差和控制器时间同步。</td></tr><tr><td>应当中止时继续转换</td><td>监测到配平或功率余量不足时，按已验证路径中止或降级，并明确提示驾驶员。</td><td>验证告警冲突、反应时间以及错误中止的后果。</td></tr><tr><td>解除限制过早或持续过久</td><td>恢复正常分配前确认故障隔离及剩余能力；限制持续期间显示可用模式。</td><td>检查软件同源缺陷、共同维护差错和驾驶员模式理解。</td></tr></tbody></table></div>
+<p>架构审查同时覆盖物理隔离、电气隔离和功能独立性。即使具备多套电池与飞控 [4]，仍需审查线束同区布置、共同冷却、同版软件和维护标定。结构设计应关注气动弹性及碎片传播，化学安全应覆盖热传播、排气路径与疏散。</p>
+</section>
+<section id="verification"><h2>验证矩阵</h2>
+<p>每行先指定需要证明的性质，再选择验证层级。验收用到的角度、时间、温度与净空阈值应从明确版本的动力学包线和安全需求导出。</p>
+<div class="scroll"><table><thead><tr><th>要求</th><th>验证设计与输入</th><th>观测量及通过条件</th></tr></thead><tbody><tr><td>R1 单站异常后保持可控</td><td>V1 硬件在环，扫倾转卡滞时刻、质量／重心、侧风及探测延迟，再对照受控飞行数据。</td><td>记录倾角差、角速率、执行饱和与高度损失。检测＋隔离＋恢复用时须小于越界时间，轨迹始终位于批准包线。</td></tr><tr><td>R2 放行覆盖能量及末端峰值功率</td><td>V2 电池台架＋整机仿真，组合低温、老化、低荷电状态和复飞功率阶跃。</td><td>电压、温度与可用功率在批准限值内，仍有达到安全着陆点的能量。</td></tr><tr><td>R3 控制跨站损伤后果</td><td>V3 结构试验、桨叶载荷测量、碎片轨迹与区域隔离评估。</td><td>相关振动与载荷不超已验证边界；以剩余布局验证可控性，并记录仍未覆盖的传播路径。</td></tr><tr><td>R4 驾驶员可识别降级模式</td><td>V4 人在环，叠加反馈延迟、告警竞争和进近工作负荷。</td><td>记录识别／操纵时间、误操作和最低净空；可用反应窗口覆盖代表性驾驶员表现。</td></tr><tr><td>R5 隔离能源并保护人员</td><td>V5 模组热传播台架、安装状态排气评估及地面疏散演练。</td><td>记录预警时间、隔离状态、烟热侵入与撤离时间。乘员和救援人员的暴露满足已分配安全要求。</td></tr><tr><td>R6 场站未清空时阻止着陆授权</td><td>V6 运行桌面演练及场站联调，注入人员误入、状态陈旧和通信中断。</td><td>任何未确认清场的路径都须阻断许可；驾驶员与地面记录对中止决定一致。</td></tr></tbody></table></div>
+<h3>用第一次作业的数字定义一个测试边界</h3>
+<p>50 km 教学算例的任务消耗为 60.3 kWh，计入 20 min 等效巡航备份后需约 100.1 kWh，距假设可用容量 120 kWh 尚余 19.9 kWh。模型的满载悬停功率约 492 kW。V2 应专门构造“能量账仍为正，但电池在末端状态下无法持续提供所需功率”的测试点。实际复飞功率和持续时间应由飞行动力学及功率台架确定。</p>
+</section>
+<section id="case"><h2>安全论证</h2>
+<p>顶层主张 G0：在已定义运行条件内，系统能保护机上人员与地面第三方。当前证据支持建立验证范围。是否可以接受剩余风险，取决于下列子主张能否在同一构型版本上同时闭合。</p>
+<div class="scroll"><table><thead><tr><th>子主张</th><th>已有证据</th><th>待闭合证据与责任方</th></tr></thead><tbody><tr><td>G1 关键失效可控</td><td>适航准则给出持续安全飞行与着陆、可控应急着陆等预期结果 [2]。</td><td>飞控与结构团队提交 R1、R3、R4 的覆盖矩阵、最差工况与独立复核记录。</td></tr><tr><td>G2 任务末端仍有安全着陆能力</td><td>第一次作业给出能量与备份的量级。</td><td>能源团队提交 R2、R5 的寿命末端功率和热传播试验，运行团队确认可达备降点。</td></tr><tr><td>G3 场站与运行措施有效</td><td>场景分析识别运行人员、乘员、第三方和地面救援接口。</td><td>运行负责人提交 R6 现场演练、培训、放行和异常报告记录；安全负责人复核残余风险。</td></tr></tbody></table></div>
+<p>运行阶段追踪倾角指令与反馈偏差、异常振动、末端功率裕量、非计划复飞与场面侵入。重复异常须启动事件复核与维修放行审查。软件、桨叶、供电布局或航线变更后，配置管理员应标明受影响的 H、R、V 条目，由独立安全审查人员确认哪些证据须重做。</p>
+</section><section><h2>依据与资料范围</h2><ol><li>[1] 张玉新，第五章课件，第 85–87 页为场景驱动 V 模型与方法总览，第 88 页为作业要求。页码按 PDF 顺序。</li>
+<li><a href="https://www.govinfo.gov/content/pkg/FR-2024-03-08/html/2024-04690.htm">[2] FAA · Joby JAS4-1 最终适航准则，2024</a></li>
+<li><a href="https://data.ntsb.gov/carol-repgen/api/Aviation/ReportMain/GenerateNewestReport/104654/pdf">[3] NTSB · JAS4-2 试验事故最终报告 DCA22FA082</a></li>
+<li><a href="https://www.jobyaviation.com/technology">[4] Joby Aviation · Technology，公开构型资料</a></li>
+</ol><p>安全要求、故障树、验证计划与论证表均为基于公开资料的课程分析。剩余风险的接受需由具备权限的团队依据实机证据决定。</p></section></main><footer>蒋远洋 15230605 · 飞行汽车技术基础 · 2026 年 11 月</footer></body></html>
